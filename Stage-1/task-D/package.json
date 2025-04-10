@@ -1,0 +1,15 @@
+{
+    "name": "task",
+    "version": "0.0.1",
+    "main": "index.js",
+    "author": "simolex",
+    "license": "MIT",
+    "private": true,
+    "devDependencies": {
+        "jest": "^27.0.5"
+    },
+    "scripts": {
+        "start": "jest --watchAll",
+        "test": "jest --runInBand --detectOpenHandles --forceExit"
+    }
+}
