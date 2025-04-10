@@ -2,30 +2,38 @@
  * Рюкзак: наибольшая стоимость с восстановлением ответа
  */
 
-function maxPriceKnapsack(n, m, weights, prices) {
-    const knapsack = Array(m + 1).fill(false);
-    const priceSum = Array(m + 1).fill(0);
-    knapsack[0] = true;
+function receptPriceKnapsack(n, m, weights, prices) {
+    const knapsack = Array.from({ length: n + 1 }, () => Array(m + 1).fill(0));
 
-    let i = 0;
-    for (let weight of weights) {
-        for (let size = m; size >= weight; size--) {
-            knapsack[size] ||= knapsack[size - weight];
-
-            if (knapsack[size]) {
-                priceSum[size] = Math.max(priceSum[size], priceSum[size - weight] + prices[i]);
+    let weight, price;
+    for (let i = 1; i <= n; i++) {
+        weight = weights[i - 1];
+        price = prices[i - 1];
+        for (let size = m; size >= 0; size--) {
+            if (size >= weight) {
+                knapsack[i][size] = Math.max(knapsack[i - 1][size], knapsack[i - 1][size - weight] + price);
+            } else {
+                knapsack[i][size] = knapsack[i - 1][size];
             }
         }
-        i++;
     }
 
-    return Math.max(...priceSum);
+    let current = m;
+    const result = [];
+    for (let i = n; i > 0; i--) {
+        if (knapsack[i - 1][current] !== knapsack[i][current]) {
+            result.push(i);
+            current -= weights[i - 1];
+        }
+    }
+
+    return result.reverse();
 }
 
 const _readline = require("readline");
 
 const _reader = _readline.createInterface({
-    input: process.stdin,
+    input: process.stdin
 });
 
 const _inputLines = [];
@@ -42,8 +50,8 @@ function solve() {
     const weights = readArray();
     const prices = readArray();
 
-    const result = maxPriceKnapsack(n, m, weights, prices);
-    console.log(result);
+    const result = receptPriceKnapsack(n, m, weights, prices);
+    console.log(result.join("\n"));
 }
 
 function readInt() {
@@ -67,4 +75,4 @@ function readString() {
     return s;
 }
 
-module.exports = maxPriceKnapsack;
+module.exports = receptPriceKnapsack;
