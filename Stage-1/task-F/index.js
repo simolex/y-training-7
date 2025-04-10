@@ -5,13 +5,12 @@
 function receptPriceKnapsack(n, m, weights, prices) {
     const knapsack = Array.from({ length: n + 1 }, () => Array(m + 1).fill(0));
 
-    let weight, price;
+    let weight;
     for (let i = 1; i <= n; i++) {
         weight = weights[i - 1];
-        price = prices[i - 1];
         for (let size = m; size >= 0; size--) {
             if (size >= weight) {
-                knapsack[i][size] = Math.max(knapsack[i - 1][size], knapsack[i - 1][size - weight] + price);
+                knapsack[i][size] = Math.max(knapsack[i - 1][size], knapsack[i - 1][size - weight] + prices[i - 1]);
             } else {
                 knapsack[i][size] = knapsack[i - 1][size];
             }
