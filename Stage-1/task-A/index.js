@@ -2,12 +2,35 @@
  * Каждому по компьютеру
  */
 
-function eachComputers(n, m, students, rooms) {}
+function eachComputers(n, m, students, rooms) {
+    const resStudents = students.map((c, i) => [c, i, -1]); // student, index, room
+    const idxRooms = Array.from({ length: m }, (_, i) => i);
+
+    resStudents.sort((a, b) => b[0] - a[0]);
+    idxRooms.sort((a, b) => rooms[b] - rooms[a]);
+
+    let j = 0;
+    let count = 0;
+    for (let i = 0; i < m && j < n; i++) {
+        while (j < n && resStudents[j][0] + 1 > rooms[idxRooms[i]]) {
+            j++;
+        }
+        if (j < n) {
+            resStudents[j][2] = idxRooms[i];
+            count++;
+        }
+        j++;
+    }
+
+    resStudents.sort((a, b) => a[1] - b[1]);
+
+    return { count, recept: resStudents.map((g) => g[2] + 1) };
+}
 
 const _readline = require("readline");
 
 const _reader = _readline.createInterface({
-    input: process.stdin
+    input: process.stdin,
 });
 
 const _inputLines = [];
@@ -27,8 +50,8 @@ function solve() {
 
     const result = eachComputers(n, m, students, rooms);
 
-    console.log(result.length);
-    console.log(result.join(" "));
+    console.log(result.count);
+    console.log(result.recept.join(" "));
 }
 
 function readInt() {
