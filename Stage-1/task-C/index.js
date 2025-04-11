@@ -1,31 +1,41 @@
 /**
- * Ни больше ни меньше
+ *  Интернет
  */
 
-function equalSize(nums) {
-    return nums.map((currentNums) => {
-        const result = [];
+function internet(m, a) {
+    let result = 0;
+    let remaining = m;
 
-        let count = 0;
-        let min = Infinity;
-        for (let num of currentNums) {
-            count++;
-            min = Math.min(min, num);
-            if (count > min) {
-                result.push(count - 1);
-                count = 1;
-                min = num;
-            }
-        }
-        result.push(count);
-        return result;
-    });
+    const cards = a.map((seconds, k) => ({
+        cost: 1 << k, // 2^k рублей
+        seconds,
+        ratio: seconds / (1 << k), // эффективность
+    }));
+
+    // Сортируем по убыванию эффективности
+    cards.sort((a, b) => b.ratio - a.ratio);
+
+    let monoCards = Infinity;
+
+    for (let k = 0; k <= 30; k++) {
+        if (Math.ceil(m / cards[k].seconds) > 0)
+            monoCards = Math.min(monoCards, Math.ceil(m / cards[k].seconds) * cards[k].cost);
+        if (remaining < 0) break;
+
+        if (cards[k].seconds === 0) continue; // Пропускаем, если карточка не дает секунд
+
+        const count = Math.floor(remaining / cards[k].seconds);
+        result += count * cards[k].cost;
+        remaining -= count * cards[k].seconds;
+    }
+
+    return Math.min(monoCards, result);
 }
 
 const _readline = require("readline");
 
 const _reader = _readline.createInterface({
-    input: process.stdin
+    input: process.stdin,
 });
 
 const _inputLines = [];
@@ -38,20 +48,12 @@ _reader.on("line", (line) => {
 process.stdin.on("end", solve);
 
 function solve() {
-    const n = readInt();
-    const nums = [];
+    const m = readInt();
+    const a = readArray();
 
-    for (let i = 0; i < n; i++) {
-        readInt();
-        nums.push(readArray());
-    }
+    const result = internet(m, a);
 
-    const result = equalSize(nums);
-
-    result.forEach((arr) => {
-        console.log(arr.length);
-        console.log(arr.join(" "));
-    });
+    console.log(result);
 }
 
 function readInt() {
@@ -75,4 +77,4 @@ function readString() {
     return s;
 }
 
-module.exports = equalSize;
+module.exports = internet;
