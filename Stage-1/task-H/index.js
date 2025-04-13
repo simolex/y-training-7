@@ -3,16 +3,14 @@
  */
 
 function goodDays(n, orders) {
-    let result = 0;
     const oddList = [];
     const evenList = [];
-
     const selectorList = {
         0: evenList,
         1: oddList
     };
-
-    let currentList, order, item;
+    // Делим на слова четной и нечетной длины + выгода для Васи
+    let currentList, order;
     const oddEvenDays = [];
     for (let i = 0; i < n; i++) {
         order = orders[i];
@@ -23,70 +21,40 @@ function goodDays(n, orders) {
                 oddEvenDays[d % 2]++;
             }
         }
-        item = [...oddEvenDays, oddEvenDays[0] - oddEvenDays[1]];
-        currentList.push(item);
+        currentList.push([...oddEvenDays, oddEvenDays[0] - oddEvenDays[1]]);
     }
 
     oddList.sort((a, b) => b[2] - a[2] || b[0] - a[0]);
     evenList.sort((a, b) => b[2] - a[2] || b[0] - a[0]);
 
-    let isOdd = 1;
-    let count = 0;
-    console.log(evenList, oddList);
+    // Максимизируем четные выгоды
+    let maxByEvenList = 0;
+    if (oddList.length > 0 && evenList.length > 0) {
+        let prefix = evenList[0][0];
+        let suffix = 0;
+        for (let i = 1; i < evenList.length; i++) {
+            suffix += evenList[i][1];
+        }
+        maxByEvenList = prefix + suffix;
 
-    for (let i = 0; i < evenList.atOdd.length; i++) {
-        count += evenList.atOdd[i][1];
-    }
-    for (let i = 0; i < evenList.atBoth.length; i++) {
-        count += evenList.atBoth[i][1];
-    }
-    if (oddList.atOdd.length > 0) {
-        count += oddList.atOdd.pop()[1];
-        isOdd = 1 - isOdd;
-    }
-    if (isOdd === 1) {
-        if (oddList.atEven.length > 0) {
-            count += oddList.atEven.shift()[1];
-            isOdd = 1 - isOdd;
-        } else if (oddList.atBoth.length > 0) {
-            count += oddList.atBoth.pop()[1];
-            isOdd = 1 - isOdd;
+        for (let i = 1; i < evenList.length - 1; i++) {
+            prefix += evenList[i][0];
+            suffix -= evenList[i][1];
+            if (maxByEvenList < prefix + suffix) maxByEvenList = prefix + suffix;
+        }
+    } else {
+        for (let i = 0; i < evenList.length; i++) {
+            maxByEvenList += evenList[i][0];
         }
     }
-    for (let i = 0; i < evenList.atEven.length; i++) {
-        count += evenList.atEven[i][0];
-    }
-    while (oddList.atOdd.length) {
-        count += oddList.atOdd.pop()[isOdd];
-        isOdd = 1 - isOdd;
-        if (oddList.atEven.length) {
-            isOdd = 1 - isOdd;
-            count += oddList.atEven.pop()[isOdd];
-        } else if (oddList.atBoth.length) {
-            count += oddList.atBoth.pop()[isOdd];
-            isOdd = 1 - isOdd;
-        } else if (oddList.atOdd.length) {
-            isOdd = 1 - isOdd;
-            count += oddList.atOdd.shift()[isOdd];
-        }
+    // Считаем нечетные выгоды
+    let lenOddList = oddList.length;
+    let maxByOddList = lenOddList % 2 ? oddList[Math.floor(lenOddList / 2)][0] : 0;
+    for (let i = 0; i < Math.floor(lenOddList / 2); i++) {
+        maxByEvenList += oddList[i][0] + oddList[lenOddList - i - 1][1];
     }
 
-    while (oddList.atEven.length) {
-        count += oddList.atEven.pop()[isOdd];
-        isOdd = 1 - isOdd;
-        if (oddList.atOdd.length) {
-            isOdd = 1 - isOdd;
-            count += oddList.atOdd.pop()[isOdd];
-        } else if (oddList.atBoth.length) {
-            count += oddList.atBoth.pop()[isOdd];
-            isOdd = 1 - isOdd;
-        } else if (oddList.atEven.length) {
-            isOdd = 1 - isOdd;
-            count += oddList.atEven.shift()[isOdd];
-        }
-    }
-
-    return count;
+    return maxByEvenList + maxByOddList;
 }
 
 const _readline = require("readline");
