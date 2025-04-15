@@ -3,39 +3,46 @@
  */
 
 function flexRover(n, s, products) {
-    for (let i = 0; i < n; i++) {
-        products.forEach((product, i) => {
-            product.push(i + 1);
-        });
-    }
-    const maxSum = products.reduce((sum, v) => sum + v[0], 0);
-    let maxCost = -1;
-    let maxDelivery = [];
+    const sortedProducts = products
+        .map(([u, c, p], i) => ({ u, c, p, idx: i + 1 }))
+        .sort((a, b) => b.p - a.p);
+    const maxCapacity = sortedProducts.reduce((sum, { u }) => sum + u, 0);
+    const knapsack = Array.from({ length: n + 1 }, () => Array(maxCapacity + 1).fill(0));
 
-    for (let u = 0; u <= maxSum; u++) {
-        const p = Math.max(0, u - s);
-        const currentProducts = products.filter((product) => product[2] >= p);
-
-        const knapsack = Array(u + 1).fill(-1);
-        knapsack[0] = 0;
-        const prevSet = Array.from({ length: u + 1 }, () => []);
-
-        for (const product of currentProducts) {
-            for (let i = u; i >= product[0]; i--) {
-                if (knapsack[i - product[0]] !== -1) {
-                    if (knapsack[i] < knapsack[i - product[0]] + product[1]) {
-                        knapsack[i] = knapsack[i - product[0]] + product[1];
-                        prevSet[i] = [...prevSet[i - product[0]], product[3]];
-                    }
-                }
+    let product;
+    for (let i = 1; i <= n; i++) {
+        product = sortedProducts[i - 1];
+        for (let size = maxCapacity; size >= 0; size--) {
+            if (size >= product.u && size - s <= product.p) {
+                knapsack[i][size] = Math.max(
+                    knapsack[i - 1][size],
+                    knapsack[i - 1][size - product.u] + product.c
+                );
+            } else {
+                knapsack[i][size] = knapsack[i - 1][size];
             }
         }
+    }
 
-        if (knapsack[u] > maxCost) {
-            maxCost = knapsack[u];
-            maxDelivery = prevSet[u] || [];
+    let maxCost = -1;
+    let idxMaxCost = maxCapacity;
+    let maxDelivery = [];
+
+    for (let i = maxCapacity; i !== 0; i--) {
+        if (maxCost < knapsack[n][i]) {
+            maxCost = knapsack[n][i];
+            idxMaxCost = i;
         }
     }
+
+    let current = idxMaxCost;
+    for (let i = n; i > 0; i--) {
+        if (knapsack[i - 1][current] !== knapsack[i][current]) {
+            maxDelivery.push(sortedProducts[i - 1].idx);
+            current -= sortedProducts[i - 1].u;
+        }
+    }
+    maxDelivery.reverse();
 
     return { maxCost, maxDelivery };
 }
@@ -43,7 +50,7 @@ function flexRover(n, s, products) {
 const _readline = require("readline");
 
 const _reader = _readline.createInterface({
-    input: process.stdin
+    input: process.stdin,
 });
 
 const _inputLines = [];
