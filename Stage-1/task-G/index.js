@@ -69,7 +69,7 @@ function twoWall(n, k, bricks) {
 const _readline = require("readline");
 
 const _reader = _readline.createInterface({
-    input: process.stdin
+    input: process.stdin,
 });
 
 const _inputLines = [];
