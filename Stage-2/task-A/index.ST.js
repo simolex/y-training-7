@@ -9,48 +9,45 @@ function getMaxAndCount(n, nums, k, queries) {
         preLogs[l] = preLogs[l >> 1] + 1;
     }
 
-    const size = 1 << (preLogs[n] + 1);
-    const SegTree = Array.from({ length: 2 * size }, () => ({ max: -Infinity, cnt: 0 }));
+    // console.log(preLogs);
 
-    const compareChildren = (left, right) => {
-        if (left.max < right.max) {
-            return right;
-        } else if (left.max > right.max) {
-            return left;
+    const sparseTable = Array.from({ length: preLogs[n] + 1 }, () =>
+        Array.from({ length: n }, () => ({ max: -Infinity, cnt: 0 }))
+    );
+
+    for (let current, i = 0; i < n; i++) {
+        current = sparseTable[0][i];
+        current.max = nums[i];
+        current.cnt = 1;
+    }
+
+    for (let k = 1; k <= preLogs[n]; k++) {
+        for (let i = 0; i <= n - (1 << k); i++) {
+            const left = sparseTable[k - 1][i];
+            const right = sparseTable[k - 1][i + (1 << (k - 1))];
+
+            if (left.max < right.max) sparseTable[k][i] = right;
+            else if (left.max > right.max) sparseTable[k][i] = left;
+            else {
+                sparseTable[k][i].max = left.max;
+                sparseTable[k][i].cnt = left.cnt + right.cnt;
+            }
         }
-
-        return { max: left.max, cnt: left.cnt + right.cnt };
-    };
-
-    for (let i = 0; i < n; i++) {
-        SegTree[size + i].max = nums[i];
-        SegTree[size + i].cnt = 1;
     }
 
-    for (let i = size - 1; i > 0; i--) {
-        const left = SegTree[2 * i];
-        const right = SegTree[2 * i + 1];
-        Object.assign(SegTree[i], compareChildren(left, right));
-    }
+    console.log(sparseTable);
+
     return queries.map(([l, r]) => {
-        const result = { max: -Infinity, cnt: 0 };
-        l += size - 1;
-        r += size - 1;
+        const len = r - l + 1;
+        const logSize = preLogs[len];
+        const left = sparseTable[logSize][l - 1];
+        const right = sparseTable[logSize][r - (1 << logSize)];
 
-        while (l <= r) {
-            if (l % 2 === 1) {
-                Object.assign(result, compareChildren(result, SegTree[l]));
-                l++;
-            }
-            if (r % 2 === 0) {
-                Object.assign(result, compareChildren(result, SegTree[r]));
-                r--;
-            }
-            l >>= 1;
-            r >>= 1;
-        }
+        // console.log(logSize, l, r);
 
-        return [result.max, result.cnt];
+        if (left.max > right.max || len === 1 << logSize) return [left.max, left.cnt];
+        else if (left.max < right.max) return [right.max, right.cnt];
+        else return [left.max, Math.max(left.cnt + right.cnt)];
     });
 }
 

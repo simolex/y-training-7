@@ -1,6 +1,6 @@
-const solution = require("./index.2");
+const solution = require(".");
 
-describe("A. Плот", () => {
+describe("A. Количество максимумов на отрезке", () => {
     test("test-1", () => {
         const result = solution([-1, -2, 5, 3], [-4, 6]);
         expect(result).toBe("NW");
