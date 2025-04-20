@@ -37,43 +37,44 @@ function nearestHigherNumber(n, nums, k, queries) {
 
             switch (operation) {
                 case 1:
-                    const result = { max: -Infinity, cnt: 0 };
+                    // const result = { max: -Infinity, cnt: 0 };
+                    let minIdx = idx;
                     idx += size - 1;
-                    while (
-                        idx > 0 &&
-                        ((SegTree[idx].max < value && 2 * (idx >> 1) + 1 === idx) ||
-                            (SegTree[idx].max >= value &&
-                                2 * (idx >> 1) === idx &&
-                                SegTree[2 * (idx >> 1) + 1].max < value))
-                    ) {
+
+                    if (SegTree[idx].max >= value) {
+                        return [idx - size + 1];
+                    }
+
+                    while (idx > 1) {
+                        if (idx % 2 === 1) {
+                            idx >>= 1;
+                            continue;
+                        }
+
+                        const right = idx + 1;
+                        if (SegTree[right].max >= value) {
+                            idx = right;
+                            break;
+                        }
                         idx >>= 1;
                     }
-                    // console.log("?", idx, SegTree[idx].max);
-                    if (idx === 0) {
+
+                    if (idx === 1 && SegTree[idx].max < value) {
                         return [-1];
                     }
-                    let i = idx;
 
-                    // console.log(">>", idx, value);
-                    while (i < size) {
-                        // console.log("LR", left, right);
-                        const leftIdx = 2 * i;
-                        const rightIdx = 2 * i + 1;
+                    // console.log(">>", idx);
+
+                    while (idx < size) {
+                        const leftIdx = 2 * idx;
+                        const rightIdx = 2 * idx + 1;
                         if (SegTree[leftIdx].max >= value) {
-                            i = leftIdx;
-                            // right = mid;
+                            idx = leftIdx;
                         } else {
-                            i = rightIdx;
-                            // left = mid + 1;
+                            idx = rightIdx;
                         }
                     }
-
-                    // console.log("===", i);
-
-                    if (i >= size && SegTree[i].max >= value) {
-                        return [i - size + 1];
-                    }
-                    return [-1];
+                    return idx >= size && idx - size + 1 >= minIdx ? [idx - size + 1] : [-1];
                 // break;
                 case 0:
                     idx += size - 1;
