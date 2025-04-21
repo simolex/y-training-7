@@ -9,7 +9,7 @@ function maxZeroSequence(n, nums, k, queries) {
         prefix: 0,
         suffix: 0,
         left: 0,
-        right: 0,
+        right: 0
     }));
 
     const compareChildren = (left, right) => {
@@ -18,6 +18,8 @@ function maxZeroSequence(n, nums, k, queries) {
             max: Math.max(left.max, right.max, left.suffix + right.prefix),
             prefix: left.prefix + (left.prefix === halfSize ? right.prefix : 0),
             suffix: right.suffix + (right.suffix === halfSize ? left.suffix : 0),
+            left: left.left,
+            right: right.right
         };
 
         return result;
@@ -44,32 +46,21 @@ function maxZeroSequence(n, nums, k, queries) {
         const left = SegTree[2 * i];
         const right = SegTree[2 * i + 1];
 
-        SegTree[i].left = left.left;
-        SegTree[i].right = right.right;
         Object.assign(SegTree[i], compareChildren(left, right));
     }
 
     const getMax = (idx, rLeft, rRight) => {
         const current = SegTree[idx];
-        if (current.left > rRight || current.right < rLeft) {
-            return {
-                max: 0,
-                prefix: 0,
-                suffix: 0,
-                left: current.left,
-                right: current.right,
-            };
-        }
-        if (idx >= size) {
-            return current;
+        if (rRight < current.left || current.right < rLeft) {
+            return { ...current, max: 0, prefix: 0, suffix: 0 };
         }
 
         if (rLeft <= current.left && current.right <= rRight) {
             return current;
         }
+
         const chLeft = getMax(2 * idx, rLeft, rRight);
         const chRight = getMax(2 * idx + 1, rLeft, rRight);
-
         return compareChildren(chLeft, chRight);
     };
 
@@ -78,8 +69,9 @@ function maxZeroSequence(n, nums, k, queries) {
             switch (operation.trim().toUpperCase()) {
                 case "QUERY":
                     let [left, right] = params;
-                    const r = getMax(1, left - 1, right - 1);
-                    return r.max;
+
+                    const result = getMax(1, left - 1, right - 1);
+                    return result.max;
                 // break;
                 case "UPDATE":
                     let [idx, value] = params;
@@ -92,7 +84,7 @@ function maxZeroSequence(n, nums, k, queries) {
                         SegTree[idx].prefix = SegTree[idx].max;
                         SegTree[idx].suffix = SegTree[idx].max;
 
-                        while (idx > 0) {
+                        while (idx > 1) {
                             idx >>= 1;
                             const left = SegTree[2 * idx];
                             const right = SegTree[2 * idx + 1];
@@ -109,7 +101,7 @@ function maxZeroSequence(n, nums, k, queries) {
 const _readline = require("readline");
 
 const _reader = _readline.createInterface({
-    input: process.stdin,
+    input: process.stdin
 });
 
 const _inputLines = [];
