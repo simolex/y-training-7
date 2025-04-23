@@ -2,96 +2,92 @@
  * Нолики
  */
 
-function maxZeroSequence(n, nums, k, queries) {
+function LazySegmentTree(n, nums, k, updates) {
     const size = 1 << Math.ceil(Math.log2(n));
-    const SegTree = Array.from({ length: 2 * size }, () => ({
-        max: 0,
-        prefix: 0,
-        suffix: 0,
-        left: 0,
-        right: 0
-    }));
+    const SegTree = Array.from({ length: 2 * size }, () => ({ max: -Infinity }));
+    const LazyPromises = Array.from({ length: 2 * size }, () => 0);
 
-    const compareChildren = (left, right) => {
-        const halfSize = left.right - left.left + 1;
-        const result = {
-            max: Math.max(left.max, right.max, left.suffix + right.prefix),
-            prefix: left.prefix + (left.prefix === halfSize ? right.prefix : 0),
-            suffix: right.suffix + (right.suffix === halfSize ? left.suffix : 0),
-            left: left.left,
-            right: right.right
-        };
-
-        return result;
-    };
-
-    let num;
-    for (let i = 0; i < size; i++) {
-        if (i < n) {
-            num = nums[i];
-        } else {
-            num = -1;
-        }
-
-        if (num === 0) {
-            SegTree[size + i].max = 1;
-            SegTree[size + i].prefix = 1;
-            SegTree[size + i].suffix = 1;
-        }
-        SegTree[size + i].left = i;
-        SegTree[size + i].right = i;
+    for (let i = 0; i < n; i++) {
+        SegTree[size + i].max = nums[i];
     }
 
     for (let i = size - 1; i > 0; i--) {
         const left = SegTree[2 * i];
         const right = SegTree[2 * i + 1];
-
-        Object.assign(SegTree[i], compareChildren(left, right));
+        SegTree[i].max = Math.max(left.max, right.max);
     }
 
-    const getMax = (idx, rLeft, rRight) => {
-        const current = SegTree[idx];
-        if (rRight < current.left || current.right < rLeft) {
-            return { ...current, max: 0, prefix: 0, suffix: 0 };
+    const applyPromise = (nIndex, nLeft, nRight, value) => {
+        if (nLeft != nRight) {
+            LazyPromises[nIndex] += value;
+        } else {
+            SegTree[nIndex].max += value;
+            LazyPromises[nIndex] = 0;
         }
-
-        if (rLeft <= current.left && current.right <= rRight) {
-            return current;
-        }
-
-        const chLeft = getMax(2 * idx, rLeft, rRight);
-        const chRight = getMax(2 * idx + 1, rLeft, rRight);
-        return compareChildren(chLeft, chRight);
     };
 
-    return queries
+    const updateNodeRange = (left, right, value, nIndex = 1, nLeft = 0, nRight = size - 1) => {
+        const node = SegTree[nIndex];
+        if (right < nLeft || nRight < left) {
+            return;
+        }
+
+        if (left <= nLeft && nRight <= right) {
+            applyPromise(nIndex, nLeft, nRight, value);
+            return;
+        }
+
+        const nMid = nLeft + Math.floor((nRight - nLeft) / 2);
+
+        if (LazyPromises[nIndex] !== 0) {
+            applyPromise(2 * nIndex, nLeft, nMid, LazyPromises[nIndex]);
+            applyPromise(2 * nIndex + 1, nMid + 1, nRight, LazyPromises[nIndex]);
+            LazyPromises[nIndex] = 0;
+        }
+
+        updateNodeRange(left, right, value, 2 * nIndex, nLeft, nMid);
+        updateNodeRange(left, right, value, 2 * nIndex + 1, nMid + 1, nRight);
+
+        node.max = Math.max(SegTree[2 * nIndex].max, SegTree[2 * nIndex + 1].max);
+    };
+
+    // const updateRange = (left, right, value) =>
+    //     updateNodeRange(1, 0, size - 1, left - 1, right - 1, value);
+
+    // console.log(SegTree);
+
+    const getValue = (idx, nIndex = 1, nLeft = 0, nRight = size - 1) => {
+        if (idx < nLeft || idx > nRight) {
+            return -Infinity;
+        }
+        if (idx === nLeft && idx === nRight) {
+            return SegTree[nIndex].max;
+        }
+
+        const nMid = nLeft + Math.floor((nRight - nLeft) / 2);
+
+        if (LazyPromises[nIndex] !== 0) {
+            applyPromise(2 * nIndex, nLeft, nMid, LazyPromises[nIndex]);
+            applyPromise(2 * nIndex + 1, nMid + 1, nRight, LazyPromises[nIndex]);
+            LazyPromises[nIndex] = 0;
+        }
+
+        return Math.max(
+            getValue(idx, 2 * nIndex, nLeft, nMid),
+            getValue(idx, 2 * nIndex + 1, nMid + 1, nRight)
+        );
+    };
+    return updates
         .map(([operation, ...params]) => {
-            switch (operation.trim().toUpperCase()) {
-                case "QUERY":
-                    let [left, right] = params;
-
-                    const result = getMax(1, left - 1, right - 1);
-                    return result.max;
-                // break;
-                case "UPDATE":
-                    let [idx, value] = params;
-                    idx += size - 1;
-
-                    const prevValue = SegTree[idx].max;
-                    SegTree[idx].max = value === 0 ? 1 : 0;
-
-                    if (prevValue !== SegTree[idx].max) {
-                        SegTree[idx].prefix = SegTree[idx].max;
-                        SegTree[idx].suffix = SegTree[idx].max;
-
-                        while (idx > 1) {
-                            idx >>= 1;
-                            const left = SegTree[2 * idx];
-                            const right = SegTree[2 * idx + 1];
-                            Object.assign(SegTree[idx], compareChildren(left, right));
-                        }
-                    }
+            switch (operation.trim()) {
+                case "a":
+                    let [left, right, value] = params;
+                    updateNodeRange(left - 1, right - 1, value);
                     break;
+                case "g":
+                    let [idx] = params;
+                    return getValue(idx - 1);
+                // break;
             }
             return [];
         })
@@ -101,7 +97,7 @@ function maxZeroSequence(n, nums, k, queries) {
 const _readline = require("readline");
 
 const _reader = _readline.createInterface({
-    input: process.stdin
+    input: process.stdin,
 });
 
 const _inputLines = [];
@@ -118,13 +114,12 @@ function solve() {
     const nums = readArray();
 
     const m = readInt();
-    const queries = [];
-
+    const updates = [];
     for (let i = 0; i < m; i++) {
-        queries.push(readStringArray().map((v, i) => (i === 0 ? v : Number(v))));
+        updates.push(readStringArray().map((v, i) => (i === 0 ? v : Number(v))));
     }
 
-    const result = maxZeroSequence(n, nums, m, queries);
+    const result = LazySegmentTree(n, nums, m, updates);
 
     console.log(result.join("\n"));
 }
@@ -159,4 +154,4 @@ function readString() {
     return s;
 }
 
-module.exports = maxZeroSequence;
+module.exports = LazySegmentTree;
