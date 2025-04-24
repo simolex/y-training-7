@@ -3,54 +3,34 @@
  */
 
 const BASE = BigInt(1 << 30);
+const BASE2 = BigInt(1 << 32);
 
 function countOnes(n, nums) {
-    const countOnes = Array(n);
-
-    let totalCountOnes = 0;
     let maxSize = -Infinity;
+    let totalCountOnes = 0;
 
-    for (let i = 0; i < n; i++) {
-        let num = nums[i];
-        let count = 0;
-        let size = 0;
-        while (num !== 0n) {
-            let part = Number(num % BASE);
-            while (part) {
-                count += part & 1;
-                size++;
-                part >>= 1;
-            }
+    const hashCounts = nums.map((num, i) => {
+        const bitset = num.toString(2);
+        maxSize = Math.max(maxSize, bitset.length);
 
-            num /= BASE;
-        }
-        countOnes[i] = count;
-        totalCountOnes += count;
-        maxSize = Math.max(maxSize, size);
-    }
+        const cntOne = bitset
+            .split("")
+            .map(Number)
+            .reduce((sum, b) => sum + b);
 
+        totalCountOnes += cntOne;
+        return [i, cntOne];
+    });
     if (totalCountOnes % 2 === 1) {
         return [];
     }
 
-    const hashCounts = countOnes.map((c, i) => [i, c]);
-    console.log(countOnes);
-    console.log(
-        nums.map((n) =>
-            n
-                .toString(2)
-                .split("")
-                .map(Number)
-                .reduce((sum, b) => sum + b)
-        )
-    );
-    // console.log(hashCounts);
-
     const result = Array.from({ length: n }, () => Array(maxSize).fill(0));
-    for (let k = 0; k < maxSize; k++) {
+
+    for (let k = maxSize - 1; k >= 0; k--) {
         let prevIndex = -1;
+        hashCounts.sort((a, b) => (a[1] % 2) - (b[1] % 2) || b[1] - a[1]);
         let count = 0;
-        hashCounts.sort((a, b) => b[1] - a[1]);
         for (let j = 0; j < n; j++) {
             const [i, cnt] = hashCounts[j];
             if (cnt > 0) {
@@ -71,20 +51,13 @@ function countOnes(n, nums) {
         return [];
     }
 
-    const resultToString = result.map((bitset) => bitset.reverse().join(""));
-
-    if (maxSize <= 30) {
-        return resultToString.map((b) => BigInt(parseInt(b, 2)));
-    }
-    return resultToString.map(
-        (b) => BigInt(parseInt(b.slice(0, 30), 2)) * BASE + BigInt(parseInt(b.slice(30, maxSize), 2))
-    );
+    return result.map((bitset) => BigInt(parseInt(bitset.join(""), 2)));
 }
 
 const _readline = require("readline");
 
 const _reader = _readline.createInterface({
-    input: process.stdin
+    input: process.stdin,
 });
 
 const _inputLines = [];
