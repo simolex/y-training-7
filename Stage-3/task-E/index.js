@@ -2,27 +2,6 @@
  * Каждому по компьютеру
  */
 
-class BitSet {
-    constructor(size = 32) {
-        this.chunkCount = Math.ceil(size / 32);
-        this.chunks = new Uint32Array(this.chunkCount);
-        this.maskChunk = (-1 << 6) >>> 1;
-        this.maskBits = (1 << 5) - 1;
-    }
-
-    _getChunk(index) {
-        return index & this.maskChunk;
-    }
-
-    _getAddress(index) {
-        return 1 << (index & this.maskBits);
-    }
-
-    get(index) {
-        return this.chunks[this._getChunk(index)] & this._getAddress(index);
-    }
-}
-
 function pointsOnPlain(x1, y1, x2, c) {
     return [x1 ^ y1, c ^ x2];
 }

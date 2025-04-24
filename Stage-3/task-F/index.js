@@ -2,8 +2,47 @@
  * Каждому по компьютеру
  */
 
-function pointsOnPlain(x1, y1, x2, c) {
-    return [x1 ^ y1, c ^ x2];
+class BitSet {
+    constructor(size = 32) {
+        this.chunkCount = Math.ceil(size / 32);
+        this.chunks = new Uint32Array(this.chunkCount);
+        this.maskChunk = (-1 << 6) >>> 1;
+        this.maskBits = (1 << 5) - 1;
+    }
+
+    _getChunk(index) {
+        return index & this.maskChunk;
+    }
+
+    _getAddress(index) {
+        return 1 << (index & this.maskBits);
+    }
+
+    get(index) {
+        return this.chunks[this._getChunk(index)] & this._getAddress(index);
+    }
+
+    set(index) {
+        this.chunks[this._getChunk(index)] |= this._getAddress(index);
+    }
+
+    delete(index) {
+        this.chunks[this._getChunk(index)] &= ~this._getAddress(index);
+    }
+
+    has(index) {
+        return !!this.get(index);
+    }
+}
+
+function isFullCovering(n, k, rooks) {
+    const cube = [new BitSet(n), new BitSet(n), new BitSet(n)];
+
+    for (let i = 0; i < k; i++) {
+        rooks[i].forEach((c, j) => cube[j].set(c - 1));
+    }
+
+    return [];
 }
 
 const _readline = require("readline");
@@ -22,10 +61,15 @@ _reader.on("line", (line) => {
 process.stdin.on("end", solve);
 
 function solve() {
-    const [x1, y1] = readArray();
-    const [x2, c] = readArray();
+    const [n, k] = readArray();
 
-    const result = pointsOnPlain(x1, y1, x2, c);
+    const rooks = [];
+
+    for (let i = 0; i < k; i++) {
+        rooks.push(readArray());
+    }
+
+    const result = isFullCovering(n, k, rooks);
 
     console.log(result.join("\n"));
 }
@@ -57,4 +101,4 @@ function readString() {
     return s;
 }
 
-module.exports = pointsOnPlain;
+module.exports = isFullCovering;
