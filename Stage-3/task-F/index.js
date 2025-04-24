@@ -36,10 +36,32 @@ class BitSet {
 }
 
 function isFullCovering(n, k, rooks) {
-    const cube = [new BitSet(n), new BitSet(n), new BitSet(n)];
+    const X = new BitSet(n);
+    const cubeByX = Array.from({ length: n }, () => ({
+        y: new BitSet(n),
+        z: new BitSet(n)
+    }));
 
     for (let i = 0; i < k; i++) {
-        rooks[i].forEach((c, j) => cube[j].set(c - 1));
+        const [x, y, z] = rooks[i];
+        cubeByX[x - 1].y.set(y - 1);
+        cubeByX[x - 1].z.set(z - 1);
+        X.set(x - 1);
+    }
+    console.dir(cubeByX, { depth: 20 });
+
+    for (let i = 0; i < n; i++) {
+        if (!X.has(i)) {
+            for (let j = 0; j < n; j++) {
+                if (!cubeByX[i].y.has(j)) {
+                    for (let k = 0; k < n; k++) {
+                        if (!cubeByX[i].z.has(k)) {
+                            return [i + 1, j + 1, k + 1];
+                        }
+                    }
+                }
+            }
+        }
     }
 
     return [];
@@ -48,7 +70,7 @@ function isFullCovering(n, k, rooks) {
 const _readline = require("readline");
 
 const _reader = _readline.createInterface({
-    input: process.stdin,
+    input: process.stdin
 });
 
 const _inputLines = [];
@@ -71,7 +93,7 @@ function solve() {
 
     const result = isFullCovering(n, k, rooks);
 
-    console.log(result.join("\n"));
+    console.log(result.length === 0 ? "YES" : `NO\n${result.join(" ")}`);
 }
 
 function readInt() {
