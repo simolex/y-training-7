@@ -4,14 +4,12 @@
 
 class BitSet {
     constructor(size = 32) {
+        this.size = size;
         this.chunkCount = Math.ceil(size / 32);
         this.chunks = new Uint32Array(this.chunkCount);
         this.maskChunk = (-1 << 5) >>> 0;
         this.maskBits = (1 << 5) - 1;
-
-        if (size % 32 !== 0) {
-            this.chunks[this.chunkCount - 1] = (-1 << size % 32) >>> 0;
-        }
+        this.clear();
     }
 
     _getChunk(index) {
@@ -20,6 +18,13 @@ class BitSet {
 
     _getAddress(index) {
         return 1 << (index & this.maskBits);
+    }
+
+    clear() {
+        this.chunks.fill(0);
+        if (this.size % 32 !== 0) {
+            this.chunks[this.chunkCount - 1] = (-1 << this.size % 32) >>> 0;
+        }
     }
 
     get(index) {
@@ -38,7 +43,13 @@ class BitSet {
         return !!this.get(index);
     }
 
-    firstDot() {
+    unionLite(B) {
+        for (let i = 0; i < this.chunkCount; i++) {
+            this.chunks[i] |= B.chunks[i];
+        }
+    }
+
+    indexOfNotHas() {
         for (let i = 0; i < this.chunkCount; i++) {
             let findingDot = ~this.chunks[i];
             if (findingDot !== 0) {
@@ -57,25 +68,26 @@ class BitSet {
 function isFullCovering(n, k, rooks) {
     const viewXY = Array.from({ length: n }, () => new BitSet(n));
     const viewYZ = Array.from({ length: n }, () => new BitSet(n));
-    const viewZX = Array.from({ length: n }, () => new BitSet(n));
+    const viewXZ = Array.from({ length: n }, () => new BitSet(n));
 
     for (let i = 0; i < k; i++) {
         const [x, y, z] = rooks[i];
         viewXY[x - 1].set(y - 1);
         viewYZ[y - 1].set(z - 1);
-        viewZX[z - 1].set(x - 1);
+        viewXZ[x - 1].set(z - 1);
     }
 
-    for (let i = 0; i < n; i++) {
-        console.log(viewXY[i].chunks[0].toString(2));
-    }
-    // console.log(viewXY, viewYZ, viewZX);
-
+    const Z = new BitSet(n);
     for (let x = 0; x < n; x++) {
-        let y = viewXY[x].firstDot();
-        if (y >= 0) {
-            let z = viewYZ[y].firstDot();
-            return [x + 1, y + 1, z + 1];
+        for (let y = 0; y < n; y++) {
+            if (!viewXY[x].has(y)) {
+                Z.clear();
+                Z.unionLite(viewYZ[y]);
+                Z.unionLite(viewXZ[x]);
+                if (Z.indexOfNotHas() >= 0) {
+                    return [x + 1, y + 1, Z.indexOfNotHas() + 1];
+                }
+            }
         }
     }
 
@@ -85,7 +97,7 @@ function isFullCovering(n, k, rooks) {
 const _readline = require("readline");
 
 const _reader = _readline.createInterface({
-    input: process.stdin,
+    input: process.stdin
 });
 
 const _inputLines = [];
