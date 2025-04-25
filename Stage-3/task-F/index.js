@@ -6,12 +6,16 @@ class BitSet {
     constructor(size = 32) {
         this.chunkCount = Math.ceil(size / 32);
         this.chunks = new Uint32Array(this.chunkCount);
-        this.maskChunk = (-1 << 6) >>> 1;
+        this.maskChunk = (-1 << 5) >>> 0;
         this.maskBits = (1 << 5) - 1;
+
+        if (size % 32 !== 0) {
+            this.chunks[this.chunkCount - 1] = (-1 << size % 32) >>> 0;
+        }
     }
 
     _getChunk(index) {
-        return index & this.maskChunk;
+        return (index & this.maskChunk) >>> 5;
     }
 
     _getAddress(index) {
@@ -33,34 +37,45 @@ class BitSet {
     has(index) {
         return !!this.get(index);
     }
+
+    firstDot() {
+        for (let i = 0; i < this.chunkCount; i++) {
+            let findingDot = ~this.chunks[i];
+            if (findingDot !== 0) {
+                let index = 0;
+                while (findingDot && !(findingDot & 1)) {
+                    findingDot >>= 1;
+                    index++;
+                }
+                return 32 * i + index;
+            }
+        }
+        return -1;
+    }
 }
 
 function isFullCovering(n, k, rooks) {
-    const X = new BitSet(n);
-    const cubeByX = Array.from({ length: n }, () => ({
-        y: new BitSet(n),
-        z: new BitSet(n)
-    }));
+    const viewXY = Array.from({ length: n }, () => new BitSet(n));
+    const viewYZ = Array.from({ length: n }, () => new BitSet(n));
+    const viewZX = Array.from({ length: n }, () => new BitSet(n));
 
     for (let i = 0; i < k; i++) {
         const [x, y, z] = rooks[i];
-        cubeByX[x - 1].y.set(y - 1);
-        cubeByX[x - 1].z.set(z - 1);
-        X.set(x - 1);
+        viewXY[x - 1].set(y - 1);
+        viewYZ[y - 1].set(z - 1);
+        viewZX[z - 1].set(x - 1);
     }
-    console.dir(cubeByX, { depth: 20 });
 
     for (let i = 0; i < n; i++) {
-        if (!X.has(i)) {
-            for (let j = 0; j < n; j++) {
-                if (!cubeByX[i].y.has(j)) {
-                    for (let k = 0; k < n; k++) {
-                        if (!cubeByX[i].z.has(k)) {
-                            return [i + 1, j + 1, k + 1];
-                        }
-                    }
-                }
-            }
+        console.log(viewXY[i].chunks[0].toString(2));
+    }
+    // console.log(viewXY, viewYZ, viewZX);
+
+    for (let x = 0; x < n; x++) {
+        let y = viewXY[x].firstDot();
+        if (y >= 0) {
+            let z = viewYZ[y].firstDot();
+            return [x + 1, y + 1, z + 1];
         }
     }
 
@@ -70,7 +85,7 @@ function isFullCovering(n, k, rooks) {
 const _readline = require("readline");
 
 const _reader = _readline.createInterface({
-    input: process.stdin
+    input: process.stdin,
 });
 
 const _inputLines = [];
