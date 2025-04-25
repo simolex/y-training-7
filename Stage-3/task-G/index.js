@@ -2,26 +2,70 @@
  * Каждому по компьютеру
  */
 
-function sumOnSegments(n) {
-    let count = 0;
-    const partSize = BigInt(1 << 16);
-
-    while (n !== 0n) {
-        let part = Number(n % partSize);
-        while (part) {
-            count += part & 1;
-            part >>= 1;
-        }
-
-        n /= partSize;
+class BinaryIndexedTree {
+    constructor(size) {
+        this.size = size;
+        this.tree = new Array(size + 1).fill(0);
     }
-    return count;
+
+    // Обновление элемента в дереве
+    update(index, value) {
+        while (index <= this.size) {
+            this.tree[index] += value;
+            index += index & -index;
+        }
+    }
+
+    // Запрос суммы на префиксе [1, index]
+    prefixQuery(index) {
+        let sum = 0;
+        while (index > 0) {
+            sum += this.tree[index];
+            index -= index & -index;
+        }
+        return sum;
+    }
+
+    // Запрос суммы на отрезке [left, right]
+    rangeQuery(left, right) {
+        return this.prefixQuery(right) - this.prefixQuery(left - 1);
+    }
+
+    // Запрос суммы на диапазоне [index+1, size]
+    query(index) {
+        return this.prefixQuery(this.size) - this.prefixQuery(index);
+    }
+}
+
+function sumOnSegments(n, m, queries) {
+    const values = Array(n + 1).fill(0);
+    const segment = new BinaryIndexedTree(n);
+
+    queries = queries.slice(0, m);
+
+    return queries
+        .map(([operation, ...params]) => {
+            switch (operation) {
+                case "A":
+                    const [idx, value] = params;
+                    const diff = value - values[idx];
+                    segment.update(idx, diff);
+                    values[idx] = value;
+                    break;
+                case "Q":
+                    const [l, r] = params;
+                    return [segment.rangeQuery(l, r)];
+                // break;
+            }
+        })
+        .filter(Boolean)
+        .map((r) => r.join(""));
 }
 
 const _readline = require("readline");
 
 const _reader = _readline.createInterface({
-    input: process.stdin
+    input: process.stdin,
 });
 
 const _inputLines = [];
@@ -43,10 +87,7 @@ function solve() {
     }
 
     const result = sumOnSegments(n, m, queries);
-
     console.log(result.join("\n"));
-
-    console.log(result);
 }
 
 function readBigInt() {
@@ -68,6 +109,15 @@ function readString() {
     const s = _inputLines[_curLine].trim();
     _curLine++;
     return s;
+}
+
+function readStringArray() {
+    var arr = _inputLines[_curLine]
+        .trim(" ")
+        .split(" ")
+        .filter((str) => str && str.length > 0);
+    _curLine++;
+    return arr;
 }
 
 module.exports = sumOnSegments;
