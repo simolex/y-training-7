@@ -11,6 +11,7 @@ class TrieNode {
 class OptimizedLZW {
     constructor() {
         this.output = new Uint8Array(200000);
+        this.buffer = new Uint32Array(1).fill(0);
         this.reset();
     }
 
@@ -18,43 +19,51 @@ class OptimizedLZW {
         this.pntByteOutput = 0;
         let maxReadByte = 0;
         while (this.pntByteOutput < n && maxReadByte < 4) {
-            this.buffer <<= 8;
-            this.buffer |= input[this.pntByteOutput];
+            this.buffer[0] <<= 8;
+            this.buffer[0] |= input[this.pntByteOutput] & 255;
             this.pntByteOutput++;
             maxReadByte++;
+            // console.log(this.buffer[0]);
         }
-        this.tailSize = (this.buffer & 0xe0000000) >> 29;
+        const tailMask = (0xe0 << ((maxReadByte - 1) * 8)) >>> 0;
+
+        this.tailSize = (this.buffer[0] & tailMask) >>> (maxReadByte * 8 - 3);
 
         if (this.pntByteOutput == n) {
             this.lastBitOutput -= this.tailSize;
-            this.buffer >>= (8 - this.tailSize) % 8;
+            this.buffer[0] >>>= (8 - this.tailSize) % 8;
+            this.pntByteOutput++;
+            // console.log(this.lastBitOutput, this.tailSize, maxReadByte, tailMask);
+            // exit;
         }
     }
 
     _readData(n, input) {
-        if (this.lastBitOutput === 0) {
-            return null;
+        console.log(this.lastBitOutput);
+        if (this.lastBitOutput === 1) {
+            return [];
         }
 
         this.lastBitOutput -= this.sizePointer;
-        let code = (this.buffer >> this.lastBitOutput) & ((1 << this.sizePointer) - 1);
-        let chrCode = -1;
+        let code = (this.buffer[0] >> this.lastBitOutput) & ((1 << this.sizePointer) - 1);
 
+        let chrCode = -1;
         if (this.lastBitOutput !== 0) {
             this.lastBitOutput -= 5;
-            chrCode = (this.buffer >> this.lastBitOutput) & ((1 << 5) - 1);
+            chrCode = (this.buffer[0] >> this.lastBitOutput) & ((1 << 5) - 1);
         }
 
         // let maxReadByte = 0;
         while (this.pntByteOutput < n && this.lastBitOutput + 8 <= 32) {
-            this.buffer <<= 8;
-            this.buffer |= input[this.pntByteOutput];
+            this.buffer[0] <<= 8;
+            this.buffer[0] |= input[this.pntByteOutput] & 255;
             this.pntByteOutput++;
             this.lastBitOutput += 8;
         }
+
         if (this.pntByteOutput == n) {
             this.lastBitOutput -= this.tailSize;
-            this.buffer >>= (8 - this.tailSize) % 8;
+            this.buffer[0] >>= (8 - this.tailSize) % 8;
         }
 
         return [code, chrCode];
@@ -62,26 +71,28 @@ class OptimizedLZW {
 
     _writeData(code, chr = "") {
         // console.log(">>", this.lastBitOutput);
+
         this.lastBitOutput -= this.sizePointer;
-        let pointerCode = code << this.lastBitOutput;
-        this.buffer |= pointerCode << 0;
+        let pointerCode = (code << this.lastBitOutput) >> 0;
+        // console.log(pointerCode, this.buffer[0]);
+        this.buffer[0] |= pointerCode;
 
         if (chr !== "") {
             this.lastBitOutput -= 5;
             let charCode = this.trie.children[chr].code << this.lastBitOutput;
-            this.buffer |= charCode << 0;
+            this.buffer[0] |= charCode << 0;
         }
 
-        // console.log(this.lastBitOutput, this.buffer);
+        // console.log(this.lastBitOutput, this.buffer[0]);
         while (32 - this.lastBitOutput >= 8) {
-            this.output[this.pntByteOutput++] = (this.buffer & (255 << 24)) >> 24;
-            this.buffer <<= 8;
+            this.output[this.pntByteOutput++] = (this.buffer[0] & (255 << 24)) >> 24;
+            this.buffer[0] <<= 8;
             this.lastBitOutput += 8;
         }
 
         if (chr === "" && this.lastBitOutput < 32) {
-            this.output[this.pntByteOutput] = (this.buffer & (255 << 24)) >> 24;
-            this.buffer <<= 8;
+            this.output[this.pntByteOutput] = (this.buffer[0] & (255 << 24)) >> 24;
+            this.buffer[0] <<= 8;
             // console.log(this.lastBitOutput, ((32 - this.lastBitOutput) << 5) & 255);
             this.output[0] |= ((32 - this.lastBitOutput) << 5) & 255;
         }
@@ -98,6 +109,7 @@ class OptimizedLZW {
 
     reset() {
         this.trie = new TrieNode();
+        this.buffer.fill(0);
         this.output.fill(0);
         this.codesLZW = [];
         this.nextCode = 26;
@@ -106,7 +118,7 @@ class OptimizedLZW {
         this.pntByteOutput = 0;
         this.lastBitOutput = 29;
         this.totalByte = 0;
-        this.buffer = 0;
+        // this.buffer = 0;
     }
 
     initDictionary() {
@@ -131,17 +143,14 @@ class OptimizedLZW {
         while (pntInput < input.length) {
             let node = this.trie;
             let chr = input[pntInput++];
-            // console.log("1", chr, pntInput);
             let prev = null;
             while (pntInput < input.length && node.children[chr]) {
                 node = node.children[chr];
                 chr = input[pntInput++];
                 prev = node;
             }
-            // console.log("2", !prev || prev.code, node.code, chr, pntInput);
             if (pntInput === input.length && !prev) {
                 this._writeData(node.children[chr].code);
-                // output.push(node.children[chr].code);
                 continue;
             }
             node.frequency++;
@@ -149,18 +158,20 @@ class OptimizedLZW {
             node.children[chr].code = this.nextCode;
             node.children[chr].frequency = 1;
             this.nextCode++;
-            // output.push(node.code, chr);
             this._writeData(node.code, chr);
         }
-        console.log(this.pntByteOutput);
+        // console.log(this.pntByteOutput);
         return this.output.slice(0, this.pntByteOutput + 1);
     }
 
     decompress(compressed) {
+        const result = [];
+
         this.reset();
         let n = compressed.length;
         this._readTailSize(n, compressed);
-        const result = [];
+
+        console.log(this.buffer[0], this.lastBitOutput);
 
         const dict = [];
 
@@ -170,7 +181,8 @@ class OptimizedLZW {
         }
 
         let offset, chrCode, pair;
-        while ((pair = this._readData()) != null) {
+        while ((pair = this._readData(n, compressed)).length > 0) {
+            console.log(pair);
             [offset, chrCode] = pair;
             const word = dict[offset] + chrCode >= 0 ? dict[chrCode] : "";
             if (chrCode >= 0) dict.push(word);
