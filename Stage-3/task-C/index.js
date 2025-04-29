@@ -2,9 +2,6 @@
  * Каждому по компьютеру
  */
 
-const BASE = BigInt(1 << 30);
-const BASE2 = BigInt(1 << 32);
-
 function countOnes(n, nums) {
     let maxSize = -Infinity;
     let totalCountOnes = 0;
@@ -71,15 +68,15 @@ process.stdin.on("end", solve);
 
 function solve() {
     const n = readInt();
-
     const nums = readBigIntArray();
-
     const result = countOnes(n, nums);
-
     if (!result.length) {
         console.log("impossible");
     }
-    console.log(result.map((v) => v.toString()).join(" "));
+    console.log(
+        result.map((v) => v.toString()).join(" ")
+        // result.map((v) => `${v.toString()} - ${v.toString(2).padStart(8, "0")}`).join("\n")
+    );
 }
 
 function readInt() {
