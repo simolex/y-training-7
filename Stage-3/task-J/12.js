@@ -12,8 +12,17 @@ class OptimizedLZW {
     constructor() {
         this.output = new Uint8Array(200000);
         this.buffer = new Uint32Array(1).fill(0);
+        this.remainBytes;
         this.reset();
     }
+
+    _openData(n, input) {
+        this.remainBytes = n;
+        this.inputData = input;
+        this.pntByteOutput = 0;
+    }
+
+    _readBits(length) {}
 
     _readTailSize(n, input) {
         this.pntByteOutput = 0;
@@ -169,7 +178,8 @@ class OptimizedLZW {
 
         this.reset();
         let n = compressed.length;
-        this._readTailSize(n, compressed);
+        this._openData(n, compressed);
+        this._readTailSize();
 
         console.log(this.buffer[0], this.lastBitOutput);
 
