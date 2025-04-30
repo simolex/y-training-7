@@ -8,12 +8,98 @@ class TrieNode {
     }
 }
 
+class BitReader {
+    constructor(fileArray) {
+        this.fileArray = fileArray;
+        this.offsetFile = 0;
+        this.arrayBuffer = new ArrayBuffer(4); // Буфер 4 байта
+        this.dataView = new DataView(this.arrayBuffer); // Для удобного доступа
+        this.byteInBuffer = 0;
+        this.bitOffset = 0; // Текущее смещение в битах (0-31)
+        this.eof = fileArray.length === 0; // Флаг конца данных
+    }
+
+    // Загружает данные в буфер (до 4 байтов)
+    loadBytes() {
+        if (this.eof) return;
+
+        // Если есть непрочитанные байты, сдвигаем их в начало
+        if (this.bitOffset >= 8) {
+            const bytesConsumed = Math.floor(this.bitOffset / 8);
+            const bytesRemaining = 4 - bytesConsumed;
+            this.byteInBuffer = bytesRemaining;
+
+            // Создаем временный буфер для сдвига
+            const temp = new Uint8Array(this.arrayBuffer);
+            for (let i = 0; i < bytesRemaining; i++) {
+                temp[i] = temp[i + bytesConsumed];
+            }
+            this.bitOffset %= 8;
+        }
+
+        // Дозагружаем новые байты
+        const startPos = this.bitOffset === 0 ? 0 : Math.ceil(this.bitOffset / 8);
+        for (let i = startPos; i < 4 && !this.eof; i++) {
+            const byte = this.readNextByte();
+            this.dataView.setUint8(i, byte);
+            this.byteInBuffer++;
+        }
+    }
+
+    // Чтение следующего байта (заглушка - реализуйте под ваш источник)
+    readNextByte() {
+        const byte = this.fileArray[this.offsetFile++];
+        if (this.offsetFile === this.fileArray.length) {
+            this.eof = true;
+        }
+        return byte;
+    }
+
+    // Чтение битов (1-32)
+    readBits(numBits) {
+        if (numBits < 1 || numBits > 32) {
+            throw new Error("Can read only 1-32 bits at once");
+        }
+
+        // Проверяем, достаточно ли битов доступно
+        const availableBits = 4 * 8 - this.bitOffset;
+        if (availableBits < numBits || this.byteInBuffer === 0) {
+            this.loadBytes();
+            if (4 * 8 - this.bitOffset < numBits) {
+                numBits = 4 * 8 - this.bitOffset;
+                if (numBits <= 0) return null; // Нет данных
+            }
+        }
+
+        // Получаем текущее 32-битное значение
+        const value = this.dataView.getUint32(0, false); // Big-endian
+        // console.log(value.toString(2));
+
+        // Вычисляем маску и извлекаем биты
+        const mask = numBits === 32 ? 0xffffffff : (1 << numBits) - 1;
+        const bits = (value >>> (32 - this.bitOffset - numBits)) & mask;
+
+        this.bitOffset += numBits;
+
+        // Если прочитали все биты, сбрасываем буфер
+        if (this.bitOffset >= 32) {
+            this.bitOffset = 0;
+            this.arrayBuffer = new ArrayBuffer(4);
+            this.dataView = new DataView(this.arrayBuffer);
+        }
+
+        return bits;
+    }
+}
+
 class OptimizedLZW {
     constructor() {
         this.output = new Uint8Array(200000);
         this.buffer = new Uint32Array(1).fill(0);
-        this.reset();
+        this.byteBuffer = this.reset();
     }
+
+    _;
 
     _readTailSize(n, input) {
         this.pntByteOutput = 0;
@@ -98,15 +184,6 @@ class OptimizedLZW {
         }
     }
 
-    // _searchNode(word) {
-    //     let node = this.trie;
-    //     for (const chr of word) {
-    //         if (!node.children[chr]) return null;
-    //         node = node.children[chr];
-    //     }
-    //     return node;
-    // }
-
     reset() {
         this.trie = new TrieNode();
         this.buffer.fill(0);
@@ -169,9 +246,13 @@ class OptimizedLZW {
 
         this.reset();
         let n = compressed.length;
-        this._readTailSize(n, compressed);
+        const buffer = new BitReader(compressed);
+        const tailSize = buffer.readBits(3);
+        console.log(">>", tailSize);
+        exit;
+        // this._readTailSize(n, compressed);
 
-        console.log(this.buffer[0], this.lastBitOutput);
+        // console.log(this.buffer[0], this.lastBitOutput);
 
         const dict = [];
 
