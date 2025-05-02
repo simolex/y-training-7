@@ -22,23 +22,6 @@ class PersistentStack {
 }
 
 function snowmen(n, clones) {
-    let result = 0;
-    let viewSnowmen = [];
-    let clone;
-    let snowman, ballWeight;
-    viewSnowmen.push(new PersistentStack());
-    for (let i = 0; i < n; i++) {
-        [snowman, ballWeight] = clones[i];
-        if (ballWeight > 0) {
-            clone = viewSnowmen[snowman].push(ballWeight);
-        } else if (viewSnowmen[snowman].isEmpty()) {
-            clone = viewSnowmen[0];
-        } else {
-            clone = viewSnowmen[snowman].pop();
-        }
-        result += clone.isEmpty() ? 0 : clone.head.value;
-        viewSnowmen.push(clone);
-    }
     return result;
 }
 
@@ -58,14 +41,26 @@ _reader.on("line", (line) => {
 process.stdin.on("end", solve);
 
 function solve() {
+    let result = 0;
     const n = readInt();
 
-    const clones = [];
+    let viewSnowmen = [];
+    let clone;
+    let snowman, ballWeight;
+    viewSnowmen.push(new PersistentStack());
     for (let i = 0; i < n; i++) {
-        clones.push(readArray());
+        [snowman, ballWeight] = readArray();
+        if (ballWeight > 0) {
+            clone = viewSnowmen[snowman].push(ballWeight);
+        } else if (viewSnowmen[snowman].isEmpty()) {
+            clone = viewSnowmen[0];
+        } else {
+            clone = viewSnowmen[snowman].pop();
+        }
+        result += clone.isEmpty() ? 0 : clone.head.value;
+        viewSnowmen.push(clone);
     }
 
-    const result = snowmen(n, clones);
     console.log(result);
 }
 
