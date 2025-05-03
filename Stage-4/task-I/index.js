@@ -2,28 +2,24 @@
  * Каждому по компьютеру
  */
 
-class PersistentStack {
-    constructor(head = null) {
-        this.head = head;
-    }
+// class PersistentStack {
+//     constructor(head = null) {
+//         this.head = head;
+//     }
 
-    push(value) {
-        const newNode = { value: this.head === null ? value : this.head.value + value, next: this.head };
-        return new PersistentStack(newNode);
-    }
+//     push(value) {
+//         const newNode = { value: this.head === null ? value : this.head.value + value, next: this.head };
+//         return new PersistentStack(newNode);
+//     }
 
-    pop() {
-        return new PersistentStack(this.head.next);
-    }
+//     pop() {
+//         return new PersistentStack(this.head.next);
+//     }
 
-    isEmpty() {
-        return this.head === null;
-    }
-}
-
-function snowmen(n, clones) {
-    return result;
-}
+//     isEmpty() {
+//         return this.head === null;
+//     }
+// }
 
 const _readline = require("readline");
 
@@ -44,21 +40,20 @@ function solve() {
     let result = 0;
     const n = readInt();
 
-    let viewSnowmen = [];
-    let clone;
+    const next = new Int32Array(n + 1).fill(0);
+    const weight = new Int32Array(n + 1).fill(0);
+
     let snowman, ballWeight;
-    viewSnowmen.push(new PersistentStack());
-    for (let i = 0; i < n; i++) {
+    for (let i = 1; i <= n; i++) {
         [snowman, ballWeight] = readArray();
         if (ballWeight > 0) {
-            clone = viewSnowmen[snowman].push(ballWeight);
-        } else if (viewSnowmen[snowman].isEmpty()) {
-            clone = viewSnowmen[0];
+            next[i] = snowman;
+            weight[i] = weight[snowman] + ballWeight;
         } else {
-            clone = viewSnowmen[snowman].pop();
+            next[i] = next[next[snowman]];
+            weight[i] = weight[next[snowman]];
         }
-        result += clone.isEmpty() ? 0 : clone.head.value;
-        viewSnowmen.push(clone);
+        result += weight[i];
     }
 
     console.log(result);
@@ -78,11 +73,3 @@ function readArray() {
     _curLine++;
     return arr;
 }
-
-function readString() {
-    const s = _inputLines[_curLine].trim();
-    _curLine++;
-    return s;
-}
-
-module.exports = snowmen;
