@@ -89,7 +89,7 @@ function decode(code) {
 const _readline = require("readline");
 
 const _reader = _readline.createInterface({
-    input: process.stdin,
+    input: process.stdin
 });
 
 const _inputLines = [];
@@ -120,17 +120,24 @@ _reader.on("line", (line) => {
 // process.stdin.on("end", solve);
 
 function solve() {
-    const n = readInt();
-    const code = readString();
+    const command = readString();
 
-    let result;
-    if (n == 1) {
-        result = encode(code);
-    } else {
-        result = decode(code);
+    switch (command) {
+        case "pack":
+            {
+                const result = pack(readString());
+                console.log(result.length);
+                console.log(result.join(" "));
+            }
+            break;
+        case "unpack":
+            {
+                const n = readInt();
+                const codes = readArray();
+                const result = unpack(n, codes);
+            }
+            console.log(result);
     }
-
-    console.log(result);
 }
 
 function readInt() {
