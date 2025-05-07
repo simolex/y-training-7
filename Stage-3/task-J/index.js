@@ -3,13 +3,33 @@
  */
 
 function pack(text) {
-    console.log(text);
+    let len = text.length;
     const dictionary = {};
+    const result = [];
     let a = "a".charCodeAt(0);
     for (let i = a; i <= "z".charCodeAt(0); i++) {
         dictionary[String.fromCharCode(i)] = i - a + 1;
     }
-    console.log(dictionary);
+    let nextCode = 27;
+
+    let left = 0;
+    while (left < len) {
+        let right = left;
+        let current = text[right++];
+        while (right < len && current in dictionary) {
+            current += text[right++];
+        }
+
+        if (!(current in dictionary)) {
+            result.push(dictionary[current.slice(0, -1)], current.slice(-1));
+            dictionary[current] = nextCode++;
+        } else {
+            result.push(dictionary[current]);
+        }
+        left = right;
+    }
+
+    console.log(result);
     return [];
 }
 
@@ -20,7 +40,7 @@ function unpack(n, codes) {
 const _readline = require("readline");
 
 const _reader = _readline.createInterface({
-    input: process.stdin
+    input: process.stdin,
 });
 
 const _inputLines = [];
